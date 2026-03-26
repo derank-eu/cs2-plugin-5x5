@@ -63,7 +63,7 @@ namespace MatchZy
 
         public static DatabaseConfig ReadDatabaseConfig(string directory)
         {
-            string configFile = System.IO.Path.Combine(Server.GameDirectory + "/csgo/cfg/MatchZy", "database.json");
+            string configFile = System.IO.Path.Combine(Server.GameDirectory + "/csgo/cfg/DerankMix", "database.json");
 
             if (!System.IO.File.Exists(configFile))
             {
@@ -105,7 +105,7 @@ namespace MatchZy
             Log($"[InitializeDatabase] Default configuration file created at: {configFile}");
         }
 
-        protected static void Log(string message) => Console.WriteLine("[MatchZy] " + message);
+        protected static void Log(string message) => Console.WriteLine("[DerankMix] " + message);
 
         protected static object BuildPlayerParams(long matchId, int mapNumber, ulong steamid64, Dictionary<string, object> playerStats) =>
             new

@@ -223,7 +223,7 @@ namespace MatchZy
                 ReplyToUserCommand(player, Localizer["matchzy.backup.restoretacticaltimeout"]);
                 return;
             }
-            string backupFolder = Path.Combine(Server.GameDirectory, "csgo", "MatchZyDataBackup");
+            string backupFolder = Path.Combine(Server.GameDirectory, "csgo", "DerankMixDataBackup");
      
             string filePath = Path.Combine(backupFolder, fileName);
  
@@ -401,7 +401,7 @@ namespace MatchZy
                 int roundNumber = t1score + t2score;
                 string round = roundNumber.ToString("D2");
                 string matchZyBackupFileName = $"matchzy_{liveMatchId}_{matchConfig.CurrentMapNumber}_round{round}.json";
-                string filePath = Path.Combine(Server.GameDirectory, "csgo", "MatchZyDataBackup", matchZyBackupFileName);
+                string filePath = Path.Combine(Server.GameDirectory, "csgo", "DerankMixDataBackup", matchZyBackupFileName);
 
                 string? directoryPath = Path.GetDirectoryName(filePath);
                 if (directoryPath != null && !Directory.Exists(directoryPath))
@@ -464,7 +464,7 @@ namespace MatchZy
 
         public List<string> GetBackups(string matchID)
         {
-            string backupDir = Path.Combine(Server.GameDirectory, "csgo", "MatchZyDataBackup");
+            string backupDir = Path.Combine(Server.GameDirectory, "csgo", "DerankMixDataBackup");
 
 
             if (!Directory.Exists(backupDir))
@@ -594,7 +594,7 @@ namespace MatchZy
                     string jsonData = response.Content.ReadAsStringAsync().Result;
                     Log($"[LoadBackupFromURL] Received following data: {jsonData}");
                     string fileName = Guid.NewGuid().ToString() + ".json";
-                    string filePath = Path.Combine(Server.GameDirectory, "csgo", "MatchZyDataBackup", fileName);
+                    string filePath = Path.Combine(Server.GameDirectory, "csgo", "DerankMixDataBackup", fileName);
 
                     string? directoryPath = Path.GetDirectoryName(filePath);
                     if (directoryPath != null && !Directory.Exists(directoryPath))

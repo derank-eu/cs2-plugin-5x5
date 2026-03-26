@@ -736,5 +736,22 @@ namespace MatchZy
 
             return HookResult.Stop;
         }
+
+        [ConsoleCommand("css_centermsg", "Broadcasts a center screen message to all players")]
+        public void OnCenterMsgCommand(CCSPlayerController? player, CommandInfo command)
+        {
+            // Only allow from server console (RCON)
+            if (player != null) return;
+            var msg = command.ArgString?.Trim();
+            if (string.IsNullOrEmpty(msg)) return;
+
+            foreach (var p in Utilities.GetPlayers())
+            {
+                if (p is { IsValid: true, IsBot: false })
+                {
+                    p.PrintToCenter(msg);
+                }
+            }
+        }
     }
 }
