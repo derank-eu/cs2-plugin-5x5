@@ -1,66 +1,69 @@
 #!/bin/bash
-# Build, copy DLLs, and zip for deployment
+# Build, copy DLLs, and create two zips for deployment:
+#   - MatchZy.zip  (plugin DLLs + lang + spawns)
+#   - cfg.zip      (cfg files)
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-RELEASE_DIR="$SCRIPT_DIR/bin/Release/net8.0"
-DEPLOY_DIR="$SCRIPT_DIR/bin/DerankMix"
+PUBLISH_DIR="$SCRIPT_DIR/bin/publish"
+DEPLOY_DIR="$SCRIPT_DIR/bin/MatchZy"
+CFG_DIR="$SCRIPT_DIR/bin/cfg"
 
-# Build
+# Build & publish (copies all dependency DLLs)
 echo "Building..."
-cd "$SCRIPT_DIR" && dotnet restore && dotnet build -c Release
+cd "$SCRIPT_DIR" && dotnet publish -c Release -o "$PUBLISH_DIR"
 
-# Prepare deploy folder
+# --- MatchZy.zip (plugin folder) ---
 rm -rf "$DEPLOY_DIR"
 mkdir -p "$DEPLOY_DIR"
 
-# Copy main plugin DLL and metadata
-cp "$RELEASE_DIR/DerankMix.dll" "$DEPLOY_DIR/"
-cp "$RELEASE_DIR/DerankMix.pdb" "$DEPLOY_DIR/" 2>/dev/null || true
-cp "$RELEASE_DIR/DerankMix.deps.json" "$DEPLOY_DIR/" 2>/dev/null || true
+# Copy plugin DLLs
+cp "$PUBLISH_DIR/MatchZy.dll" "$DEPLOY_DIR/"
+cp "$PUBLISH_DIR/MatchZy.pdb" "$DEPLOY_DIR/" 2>/dev/null || true
+cp "$PUBLISH_DIR/MatchZy.deps.json" "$DEPLOY_DIR/" 2>/dev/null || true
 
 # Copy dependency DLLs
-cp "$RELEASE_DIR/Dapper.dll" "$DEPLOY_DIR/"
-cp "$RELEASE_DIR/Npgsql.dll" "$DEPLOY_DIR/"
-cp "$RELEASE_DIR/Newtonsoft.Json.dll" "$DEPLOY_DIR/"
-cp "$RELEASE_DIR/CsvHelper.dll" "$DEPLOY_DIR/"
-cp "$RELEASE_DIR/MySqlConnector.dll" "$DEPLOY_DIR/"
-cp "$RELEASE_DIR/Microsoft.Data.Sqlite.dll" "$DEPLOY_DIR/"
-cp "$RELEASE_DIR/SQLitePCLRaw.core.dll" "$DEPLOY_DIR/" 2>/dev/null || true
-cp "$RELEASE_DIR/SQLitePCLRaw.batteries_v2.dll" "$DEPLOY_DIR/" 2>/dev/null || true
-cp "$RELEASE_DIR/SQLitePCLRaw.provider.e_sqlite3.dll" "$DEPLOY_DIR/" 2>/dev/null || true
+for dll in Dapper Npgsql Newtonsoft.Json CsvHelper MySqlConnector Microsoft.Data.Sqlite \
+           SQLitePCLRaw.core SQLitePCLRaw.batteries_v2 SQLitePCLRaw.provider.e_sqlite3; do
+  cp "$PUBLISH_DIR/$dll.dll" "$DEPLOY_DIR/" 2>/dev/null || echo "Warning: $dll.dll not found"
+done
 
 # Copy lang files
-if [ -d "$RELEASE_DIR/lang" ]; then
-  mkdir -p "$DEPLOY_DIR/lang"
-  cp "$RELEASE_DIR/lang/"*.json "$DEPLOY_DIR/lang/" 2>/dev/null || echo "Warning: no lang files"
+if [ -d "$PUBLISH_DIR/lang" ]; then
+  cp -r "$PUBLISH_DIR/lang" "$DEPLOY_DIR/lang"
 fi
 
 # Copy spawns files
-if [ -d "$RELEASE_DIR/spawns" ]; then
-  cp -r "$RELEASE_DIR/spawns" "$DEPLOY_DIR/spawns"
+if [ -d "$PUBLISH_DIR/spawns" ]; then
+  cp -r "$PUBLISH_DIR/spawns" "$DEPLOY_DIR/spawns"
 fi
 
-# Copy cfg files (so the zip is ready to drop in)
-cp -r "$SCRIPT_DIR/cfg" "$DEPLOY_DIR/cfg"
-
-# Display deploy folder contents
 echo ""
-echo "Deploy folder contents:"
+echo "Plugin folder contents:"
 ls -la "$DEPLOY_DIR/"
-echo ""
 
-# Zip
+# --- cfg.zip (config files wrapped in cfg/MatchZy/) ---
+rm -rf "$CFG_DIR"
+mkdir -p "$CFG_DIR/cfg/MatchZy"
+cp -r "$SCRIPT_DIR/cfg/MatchZy/"* "$CFG_DIR/cfg/MatchZy/"
+
+echo ""
+echo "Config folder contents:"
+ls -la "$CFG_DIR/cfg/MatchZy/"
+
+# --- Create zips ---
 cd "$SCRIPT_DIR/bin"
-rm -f DerankMix.zip
-powershell.exe -Command "Compress-Archive -Path '$(wslpath -w "$DEPLOY_DIR")' -DestinationPath '$(wslpath -w "$SCRIPT_DIR/bin/DerankMix.zip")' -Force"
+rm -f MatchZy.zip cfg.zip
+powershell.exe -Command "Compress-Archive -Path '$(wslpath -w "$DEPLOY_DIR")' -DestinationPath '$(wslpath -w "$SCRIPT_DIR/bin/MatchZy.zip")' -Force"
+powershell.exe -Command "Compress-Archive -Path '$(wslpath -w "$CFG_DIR/cfg")' -DestinationPath '$(wslpath -w "$SCRIPT_DIR/bin/cfg.zip")' -Force"
 
 echo ""
-echo "Done! Zip at: $SCRIPT_DIR/bin/DerankMix.zip"
+echo "Done!"
+echo "  bin/MatchZy.zip  - plugin files"
+echo "  bin/cfg.zip      - config files"
 echo ""
 echo "To deploy on DatHost:"
-echo "  1. Upload DerankMix.zip to the server"
-echo "  2. Extract to: csgo/addons/counterstrikesharp/plugins/DerankMix/"
-echo "  3. Move DerankMix/cfg/DerankMix/ to: csgo/cfg/DerankMix/"
-echo "  4. Restart the server"
+echo "  1. Upload MatchZy.zip -> extract to: csgo/addons/counterstrikesharp/plugins/MatchZy/"
+echo "  2. Upload cfg.zip     -> extract to: csgo/ (contains cfg/MatchZy/)"
+echo "  3. Restart the server"

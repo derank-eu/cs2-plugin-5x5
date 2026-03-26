@@ -12,13 +12,13 @@ namespace MatchZy
     public partial class MatchZy : BasePlugin
     {
 
-        public override string ModuleName => "DerankMix";
+        public override string ModuleName => "MatchZy";
 
         public override string ModuleVersion => "0.8.15";
 
-        public override string ModuleAuthor => "Derank Mix";
+        public override string ModuleAuthor => "WD- (https://github.com/shobhit-pathak/)";
 
-        public override string ModuleDescription => "Derank Mix customized match management plugin for CS2";
+        public override string ModuleDescription => "A plugin for running and managing CS2 practice/pugs/scrims/matches!";
 
         public string chatPrefix = $"[{ChatColors.Green}MatchZy{ChatColors.Default}]";
         public string adminChatPrefix = $"[{ChatColors.Red}ADMIN{ChatColors.Default}]";
@@ -92,7 +92,7 @@ namespace MatchZy
             database.InitializeDatabase(ModuleDirectory);
 
             // This sets default config ConVars
-            Server.ExecuteCommand("execifexists DerankMix/config.cfg");
+            Server.ExecuteCommand("execifexists MatchZy/config.cfg");
 
             teamSides[matchzyTeam1] = "CT";
             teamSides[matchzyTeam2] = "TERRORIST";
@@ -543,7 +543,7 @@ namespace MatchZy
             RegisterEventHandler<EventMolotovDetonate>(EventMolotovDetonateHandler);
             RegisterEventHandler<EventDecoyStarted>(EventDecoyDetonateHandler);
 
-            Console.WriteLine($"[{ModuleName} {ModuleVersion} LOADED] DerankMix (https://derank.eu)");
+            Console.WriteLine($"[{ModuleName} {ModuleVersion} LOADED] MatchZy by WD- (https://github.com/shobhit-pathak/)");
         }
     }
 }

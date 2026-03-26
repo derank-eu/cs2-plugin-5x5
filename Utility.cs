@@ -1249,7 +1249,7 @@ namespace MatchZy
             // Server.PrintToChatAll($"{chatPrefix} {ChatColors.Green}Admin{ChatColors.Default} has paused the match.");
             if (player == null)
             {
-                Server.PrintToConsole($"[DerankMix] {Localizer["matchzy.pause.adminpausedthematch"]}");
+                Server.PrintToConsole($"[MatchZy] {Localizer["matchzy.pause.adminpausedthematch"]}");
             }
             SetMatchPausedFlags();
         }
@@ -1268,7 +1268,7 @@ namespace MatchZy
 
                 if (player == null)
                 {
-                    Server.PrintToConsole("[DerankMix] Admin has unpaused the match, resuming the match!");
+                    Server.PrintToConsole("[MatchZy] Admin has unpaused the match, resuming the match!");
                 }
             }
         }
@@ -1747,7 +1747,7 @@ namespace MatchZy
 
         private void Log(string message)
         {
-            Console.WriteLine("[DerankMix] " + message);
+            Console.WriteLine("[MatchZy] " + message);
         }
 
         private void AutoStart()

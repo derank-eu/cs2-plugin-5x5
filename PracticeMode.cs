@@ -128,8 +128,8 @@ namespace MatchZy
 
         public Dictionary<byte, List<Position>> coachSpawns = GetEmptySpawnsData();
 
-        public const string practiceCfgPath = "DerankMix/prac.cfg";
-        public const string dryrunCfgPath = "DerankMix/dryrun.cfg";
+        public const string practiceCfgPath = "MatchZy/prac.cfg";
+        public const string dryrunCfgPath = "MatchZy/dryrun.cfg";
 
         // This map stores the bots which are being used in prac (probably spawned using .bot). Key is the userid of the bot.
         public Dictionary<int, Dictionary<string, object>> pracUsedBots = new Dictionary<int, Dictionary<string, object>>();
@@ -299,7 +299,7 @@ namespace MatchZy
                 string nadeType = GetNadeType(player.PlayerPawn.Value.WeaponServices!.ActiveWeapon.Value!.DesignerName);
 
                 // Define the file path
-                string savednadesfileName = "DerankMix/savednades.json";
+                string savednadesfileName = "MatchZy/savednades.json";
                 string savednadesPath = Path.Join(Server.GameDirectory + "/csgo/cfg", savednadesfileName);
 
                 // Check if the file exists, if not, create it with an empty JSON object
@@ -384,7 +384,7 @@ namespace MatchZy
                 }
 
                 // Define the file path
-                string savednadesfileName = "DerankMix/savednades.json";
+                string savednadesfileName = "MatchZy/savednades.json";
                 string savednadesPath = Path.Join(Server.GameDirectory + "/csgo/cfg", savednadesfileName);
 
                 try
@@ -465,7 +465,7 @@ namespace MatchZy
                         string currentMapName = Server.MapName;
 
                         // Define the file path
-                        string savednadesfileName = "DerankMix/savednades.json";
+                        string savednadesfileName = "MatchZy/savednades.json";
                         string savednadesPath = Path.Join(Server.GameDirectory + "/csgo/cfg", savednadesfileName);
 
                         // Read existing JSON content
@@ -536,7 +536,7 @@ namespace MatchZy
             if (!isPractice || player == null) return;
 
             // Define the file path
-            string savednadesfileName = "DerankMix/savednades.json";
+            string savednadesfileName = "MatchZy/savednades.json";
             string savednadesPath = Path.Join(Server.GameDirectory + "/csgo/cfg", savednadesfileName);
 
             try
@@ -598,7 +598,7 @@ namespace MatchZy
                 string playerSteamID = player.SteamID.ToString();
 
                 // Define the file path
-                string savednadesfileName = "DerankMix/savednades.json";
+                string savednadesfileName = "MatchZy/savednades.json";
                 string savednadesPath = Path.Join(Server.GameDirectory + "/csgo/cfg", savednadesfileName);
 
                 try
