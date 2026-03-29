@@ -1,0 +1,13 @@
+{
+    "DatabaseType": "PostgreSQL",
+    "MySqlHost": "your_mysql_host",
+    "MySqlDatabase": "your_mysql_database",
+    "MySqlUsername": "your_mysql_username",
+    "MySqlPassword": "your_mysql_password",
+    "MySqlPort": 3306,
+    "PostgresHost": "aws-1-eu-west-1.pooler.supabase.com",
+    "PostgresDatabase": "postgres",
+    "PostgresUsername": "postgres.mgnbfnxgzutcegqfrgfj",
+    "PostgresPassword": "YOUR_POSTGRES_PASSWORD_HERE",
+    "PostgresPort": 6543
+}

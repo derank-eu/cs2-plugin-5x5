@@ -10,5 +10,8 @@ namespace MatchZy
         Task UpdateMapStatsAsync(long matchId, int mapNumber, int t1score, int t2score);
         Task UpdatePlayerStatsAsync(long matchId, int mapNumber, Dictionary<ulong, Dictionary<string, object>> playerStatsDictionary);
         Task WritePlayerStatsToCsv(string filePath, long matchId, int mapNumber);
+        Task UpdateDerankScoresAsync(long matchId, int t1score, int t2score);
+        Task UpdateDerankPlayerStatsAsync(long matchId, int mapNumber, Dictionary<ulong, Dictionary<string, object>> playerStatsDictionary);
+        Task SetDerankMatchFinished(long matchId);
     }
 }

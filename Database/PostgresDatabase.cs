@@ -278,5 +278,82 @@ namespace MatchZy
                 Log($"[UpdatePlayerStats - FATAL] Error inserting/updating data: {ex.Message}");
             }
         }
+        // --- Derank-bot direct DB writes ---
+
+        public override async Task UpdateDerankScoresAsync(long matchId, int t1score, int t2score)
+        {
+            try
+            {
+                await connection.ExecuteAsync(@"
+                    UPDATE matches SET team1_score = @t1score, team2_score = @t2score
+                    WHERE id = @matchId AND status = 'live'",
+                    new { matchId, t1score, t2score });
+            }
+            catch (Exception ex)
+            {
+                Log($"[UpdateDerankScores] Error: {ex.Message}");
+            }
+        }
+
+        public override async Task UpdateDerankPlayerStatsAsync(long matchId, int mapNumber, Dictionary<ulong, Dictionary<string, object>> playerStatsDictionary)
+        {
+            try
+            {
+                foreach (ulong steamid64 in playerStatsDictionary.Keys)
+                {
+                    var p = playerStatsDictionary[steamid64];
+                    await connection.ExecuteAsync(@"
+                        UPDATE match_players SET
+                            kills = @kills, deaths = @deaths, assists = @assists,
+                            headshot_kills = @head_shot_kills, damage = @damage,
+                            entry_attempts = @entry_count, entry_successes = @entry_wins,
+                            clutch_1v1_wins = @v1_wins, clutch_1v2_wins = @v2_wins,
+                            multi_kills_3k = @enemy3ks, multi_kills_4k = @enemy4ks, multi_kills_5k = @enemy5ks,
+                            utility_damage = @utility_damage, enemies_flashed = @enemies_flashed,
+                            stats_source = 'plugin', stats_written_at = NOW()
+                        WHERE match_id = @matchId
+                          AND discord_id = (SELECT discord_id FROM users WHERE steam_id = @steamid64str LIMIT 1)",
+                        new
+                        {
+                            matchId,
+                            steamid64str = steamid64.ToString(),
+                            kills = p["Kills"],
+                            deaths = p["Deaths"],
+                            assists = p["Assists"],
+                            head_shot_kills = p["HeadShotKills"],
+                            damage = p["Damage"],
+                            entry_count = p["EntryCount"],
+                            entry_wins = p["EntryWins"],
+                            v1_wins = p["1v1Wins"],
+                            v2_wins = p["1v2Wins"],
+                            enemy3ks = p["Enemy3Ks"],
+                            enemy4ks = p["Enemy4Ks"],
+                            enemy5ks = p["Enemy5Ks"],
+                            utility_damage = p["UtilityDamage"],
+                            enemies_flashed = p["EnemiesFlashed"]
+                        });
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"[UpdateDerankPlayerStats] Error: {ex.Message}");
+            }
+        }
+
+        public override async Task SetDerankMatchFinished(long matchId)
+        {
+            try
+            {
+                await connection.ExecuteAsync(@"
+                    UPDATE matches SET plugin_finished = TRUE
+                    WHERE id = @matchId",
+                    new { matchId });
+                Log($"[SetDerankMatchFinished] Match {matchId} flagged as plugin_finished");
+            }
+            catch (Exception ex)
+            {
+                Log($"[SetDerankMatchFinished] Error: {ex.Message}");
+            }
+        }
     }
 }

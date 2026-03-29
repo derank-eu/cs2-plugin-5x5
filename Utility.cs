@@ -1077,6 +1077,9 @@ namespace MatchZy
                         await SendEventAsync(roundEndEvent);
                         await database.UpdatePlayerStatsAsync(matchId, currentMapNumber, playerStatsDictionary);
                         await database.UpdateMapStatsAsync(matchId, currentMapNumber, t1score, t2score);
+                        // Write directly to derank-bot tables
+                        await database.UpdateDerankScoresAsync(matchId, t1score, t2score);
+                        await database.UpdateDerankPlayerStatsAsync(matchId, currentMapNumber, playerStatsDictionary);
                     });
 
                     string round = GetRoundNumer().ToString("D2");

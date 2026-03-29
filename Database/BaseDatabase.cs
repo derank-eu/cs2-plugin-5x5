@@ -105,6 +105,10 @@ namespace MatchZy
             Log($"[InitializeDatabase] Default configuration file created at: {configFile}");
         }
 
+        public virtual Task UpdateDerankScoresAsync(long matchId, int t1score, int t2score) => Task.CompletedTask;
+        public virtual Task UpdateDerankPlayerStatsAsync(long matchId, int mapNumber, Dictionary<ulong, Dictionary<string, object>> playerStatsDictionary) => Task.CompletedTask;
+        public virtual Task SetDerankMatchFinished(long matchId) => Task.CompletedTask;
+
         protected static void Log(string message) => Console.WriteLine("[MatchZy] " + message);
 
         protected static object BuildPlayerParams(long matchId, int mapNumber, ulong steamid64, Dictionary<string, object> playerStats) =>
