@@ -345,10 +345,10 @@ namespace MatchZy
             try
             {
                 await connection.ExecuteAsync(@"
-                    UPDATE matches SET plugin_finished = TRUE
-                    WHERE id = @matchId",
+                    UPDATE matches SET status = 'finished', finished_at = NOW()
+                    WHERE id = @matchId AND status = 'live'",
                     new { matchId });
-                Log($"[SetDerankMatchFinished] Match {matchId} flagged as plugin_finished");
+                Log($"[SetDerankMatchFinished] Match {matchId} set to finished");
             }
             catch (Exception ex)
             {
