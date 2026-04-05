@@ -49,9 +49,60 @@ public partial class MatchZy
                     playerReadyStatus[player.UserId.Value] = true;
                 }
             }
-            // May not be required, but just to be on safe side so that player data is properly updated in dictionaries
-            // Update: Commenting the below function as it was being called multiple times on map change.
-            // UpdatePlayersMap();
+
+            if (!player.IsBot && !player.IsHLTV)
+            {
+                if (isMatchSetup)
+                {
+                    // Match configured — show team assignment + player count + who's missing
+                    CsTeam team = GetPlayerTeam(player);
+                    string teamName = team == CsTeam.CounterTerrorist ? matchzyTeam1.teamName : matchzyTeam2.teamName;
+                    PrintToAllChat($" {ChatColors.Green}✓ {ChatColors.Default}{player.PlayerName} {ChatColors.Grey}conectou ({ChatColors.Default}{teamName}{ChatColors.Grey})");
+
+                    // Count connected vs expected + build missing list
+                    int connected = 0;
+                    int total = matchConfig.PlayersPerTeam * 2;
+                    List<string> missingNames = new();
+
+                    foreach (var tp in new[] { matchzyTeam1.teamPlayers, matchzyTeam2.teamPlayers })
+                    {
+                        if (tp is not Newtonsoft.Json.Linq.JObject jObj) continue;
+                        foreach (var prop in jObj.Properties())
+                        {
+                            string sid = prop.Name;
+                            string pName = prop.Value?.ToString() ?? sid;
+                            bool found = false;
+                            foreach (var pd in playerData.Values)
+                            {
+                                if (pd.SteamID.ToString() == sid) { found = true; connected++; break; }
+                            }
+                            if (!found) missingNames.Add(pName);
+                        }
+                    }
+
+                    if (connected >= total)
+                    {
+                        PrintToAllChat($" {ChatColors.Green}✓ Todos os jogadores conectados! Preparando partida...");
+                    }
+                    else
+                    {
+                        PrintToAllChat($" {ChatColors.Yellow}Jogadores: {ChatColors.Green}{connected}{ChatColors.Yellow}/{ChatColors.Green}{total}");
+                        if (missingNames.Count > 0 && missingNames.Count <= 5)
+                        {
+                            PrintToAllChat($" {ChatColors.Grey}Faltam: {ChatColors.Red}{string.Join($"{ChatColors.Grey}, {ChatColors.Red}", missingNames)}");
+                        }
+                    }
+                    Log($"[CONNECT] {player.PlayerName} joined ({connected}/{total}) missing: {string.Join(", ", missingNames)}");
+                }
+                else
+                {
+                    // Match not configured yet — show welcome + waiting message
+                    player.PrintToChat($" {ChatColors.Orange}[Derank]{ChatColors.Default} Bem-vindo ao {ChatColors.Gold}Derank Mix{ChatColors.Default}!");
+                    player.PrintToChat($" {ChatColors.Orange}[Derank]{ChatColors.Default} Aguarde, o servidor está sendo configurado...");
+                    PrintToAllChat($" {ChatColors.Green}✓ {ChatColors.Default}{player.PlayerName} {ChatColors.Grey}conectou");
+                    Log($"[CONNECT] {player.PlayerName} joined (match not yet configured)");
+                }
+            }
 
             if (readyAvailable && !matchStarted)
             {
@@ -82,6 +133,13 @@ public partial class MatchZy
             if (!IsPlayerValid(player)) return HookResult.Continue;
             if (!player!.UserId.HasValue) return HookResult.Continue;
             int userId = player.UserId.Value;
+
+            // Show disconnect message when match is configured
+            if (isMatchSetup && !player.IsBot && !player.IsHLTV)
+            {
+                PrintToAllChat($" {ChatColors.Red}✗ {ChatColors.Default}{player.PlayerName} {ChatColors.Grey}desconectou");
+                Log($"[DISCONNECT] {player.PlayerName} left");
+            }
 
             if (playerReadyStatus.ContainsKey(userId))
             {

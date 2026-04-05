@@ -368,6 +368,12 @@ namespace MatchZy
             UpdatePlayersMap();
             UpdateHostname();
 
+            // Announce match setup to players in server
+            PrintToAllChat($" {ChatColors.Green}✓ Servidor configurado!");
+            PrintToAllChat($" {ChatColors.Default}{matchzyTeam1.teamName} {ChatColors.Grey}vs {ChatColors.Default}{matchzyTeam2.teamName}");
+            PrintToAllChat($" {ChatColors.Grey}Mapa: {ChatColors.Yellow}{matchConfig.Maplist[0]}");
+            Log($"[MatchSetup] Match #{liveMatchId} configured: {matchzyTeam1.teamName} vs {matchzyTeam2.teamName}");
+
             var seriesStartedEvent = new MatchZySeriesStartedEvent
             {
                 MatchId = liveMatchId,

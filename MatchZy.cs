@@ -14,7 +14,7 @@ namespace MatchZy
 
         public override string ModuleName => "MatchZy";
 
-        public override string ModuleVersion => "0.8.15";
+        public override string ModuleVersion => "0.8.15 (Derank v0.0.4)";
 
         public override string ModuleAuthor => "WD- (https://github.com/shobhit-pathak/)";
 
@@ -36,6 +36,9 @@ namespace MatchZy
         public int autoStartMode = 1;
 
         public bool mapReloadRequired = false;
+
+        // Suppress ready messages for first 60s after plugin load (gives bot time to send matchzy_loadmatch_url)
+        private DateTime pluginLoadTime = DateTime.UtcNow;
 
         // Pause Data
         public bool isPaused = false;

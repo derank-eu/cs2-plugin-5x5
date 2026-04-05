@@ -144,7 +144,47 @@ namespace MatchZy
         {
             if (!isWarmup || matchStarted) return;
             // Suppress ready messages when match was loaded via loadmatch (bot-managed)
-            if (isMatchSetup) return;
+            if (isMatchSetup)
+            {
+                // Show "waiting for players" message with connected/missing player count
+                int connectedCount = 0;
+                int totalExpected = matchConfig.PlayersPerTeam * 2;
+                List<string> missingPlayers = new();
+
+                foreach (var tp in new[] { matchzyTeam1.teamPlayers, matchzyTeam2.teamPlayers })
+                {
+                    if (tp is not Newtonsoft.Json.Linq.JObject jObj) continue;
+                    foreach (var prop in jObj.Properties())
+                    {
+                        string steamId = prop.Name;
+                        string playerName = prop.Value?.ToString() ?? steamId;
+                        bool found = false;
+                        foreach (var pd in playerData.Values)
+                        {
+                            if (pd.SteamID.ToString() == steamId)
+                            {
+                                found = true;
+                                connectedCount++;
+                                break;
+                            }
+                        }
+                        if (!found)
+                        {
+                            missingPlayers.Add(playerName);
+                        }
+                    }
+                }
+
+                if (missingPlayers.Count > 0)
+                {
+                    PrintToAllChat($" {ChatColors.Yellow}Aguardando jogadores ({ChatColors.Green}{connectedCount}{ChatColors.Yellow}/{ChatColors.Green}{totalExpected}{ChatColors.Yellow})");
+                    PrintToAllChat($" {ChatColors.Grey}Faltam: {ChatColors.Red}{string.Join($"{ChatColors.Grey}, {ChatColors.Red}", missingPlayers)}");
+                }
+                return;
+            }
+            // Suppress ready messages for first 60s after plugin load (bot sends config during this window)
+            if ((DateTime.UtcNow - pluginLoadTime).TotalSeconds < 60) return;
+
             List<string> unreadyPlayers = new();
 
             foreach (var key in playerReadyStatus.Keys)
@@ -157,9 +197,8 @@ namespace MatchZy
             if (unreadyPlayers.Count > 0)
             {
                 string unreadyPlayerList = string.Join(", ", unreadyPlayers);
-                string minimumReadyRequiredMessage = isMatchSetup ? "" : $"[Minimum ready players required: {ChatColors.Green}{minimumReadyRequired}{ChatColors.Default}]";
+                string minimumReadyRequiredMessage = $"[Minimum ready players required: {ChatColors.Green}{minimumReadyRequired}{ChatColors.Default}]";
 
-                // Server.PrintToChatAll($"{chatPrefix} Unready players: {unreadyPlayerList}. Please type .ready to ready up! {minimumReadyRequiredMessage}");
                 if (isRoundRestorePending)
                 {
                     PrintToAllChat(Localizer["matchzy.ready.readytotestorebackupinfomessage", unreadyPlayerList, minimumReadyRequiredMessage]);
@@ -1755,6 +1794,7 @@ namespace MatchZy
 
         private void AutoStart()
         {
+            pluginLoadTime = DateTime.UtcNow; // Reset grace period on every map load/restart
             Log($"[AutoStart] autoStartMode: {autoStartMode}");
             if (autoStartMode == 0)
             {
