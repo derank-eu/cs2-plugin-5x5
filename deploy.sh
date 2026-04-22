@@ -1,11 +1,57 @@
 #!/bin/bash
-# Build, copy DLLs, and create two zips for deployment:
-#   - MatchZy.zip  (plugin DLLs + lang + spawns)
-#   - cfg.zip      (cfg files)
+# Build, copy DLLs, and create two versioned zips for deployment:
+#   - MatchZy-<version>.zip  (plugin DLLs + lang + spawns)
+#   - cfg-<version>.zip      (cfg files)
+#
+# Usage: ./deploy.sh            → bumps Derank fork version
+#        ./deploy.sh --no-bump
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# ─── version helpers (self-contained) ───────────────────────────────────────────
+read_version() {
+    grep -oP "$2" "$1" | head -n1 | grep -oP '"\K[^"]+'
+}
+bump_patch_version() {
+    local file="$1" regex="$2" current new
+    current=$(read_version "$file" "$regex")
+    [ -z "$current" ] && { echo "ERROR: could not parse version from $file" >&2; return 1; }
+    if [ "${NO_BUMP:-0}" = "1" ]; then echo "$current"; return 0; fi
+    if [[ "$current" =~ ^([0-9]+(\.[0-9]+)*)\.([0-9]+)$ ]]; then
+        new="${BASH_REMATCH[1]}.$((BASH_REMATCH[3] + 1))"
+        sed -i "s|\"${current}\"|\"${new}\"|" "$file"
+        echo "$new"
+    else
+        echo "$current"
+    fi
+}
+zip_with_version() {
+    local deploy_dir="$1" basename="$2" version="$3"
+    local bin_dir; bin_dir=$(dirname "$deploy_dir")
+    local versioned="${bin_dir}/${basename}-${version}.zip"
+    rm -f "$versioned"
+    if command -v powershell.exe &>/dev/null; then
+        powershell.exe -Command "Compress-Archive -Path '$(wslpath -w "$deploy_dir")' -DestinationPath '$(wslpath -w "$versioned")' -Force"
+    else
+        (cd "$bin_dir" && zip -qr "$(basename "$versioned")" "$(basename "$deploy_dir")")
+    fi
+    echo
+    echo "Done: $versioned"
+}
+# ─── end helpers ────────────────────────────────────────────────────────────────
+
+[ "${1:-}" = "--no-bump" ] && NO_BUMP=1 || NO_BUMP=0
+export NO_BUMP
+
+# Target the DerankVersion constant (upstream MatchZy version stays frozen).
+VERSION_FILE="$SCRIPT_DIR/MatchZy.cs"
+VERSION_REGEX='DerankVersion = "([^"]+)"'
+
+VERSION=$(bump_patch_version "$VERSION_FILE" "$VERSION_REGEX")
+echo "Deploying MatchZy (Derank v$VERSION)"
+
 PUBLISH_DIR="$SCRIPT_DIR/bin/publish"
 DEPLOY_DIR="$SCRIPT_DIR/bin/MatchZy"
 CFG_DIR="$SCRIPT_DIR/bin/cfg"
@@ -52,18 +98,12 @@ echo ""
 echo "Config folder contents:"
 ls -la "$CFG_DIR/cfg/MatchZy/"
 
-# --- Create zips ---
-cd "$SCRIPT_DIR/bin"
-rm -f MatchZy.zip cfg.zip
-powershell.exe -Command "Compress-Archive -Path '$(wslpath -w "$DEPLOY_DIR")' -DestinationPath '$(wslpath -w "$SCRIPT_DIR/bin/MatchZy.zip")' -Force"
-powershell.exe -Command "Compress-Archive -Path '$(wslpath -w "$CFG_DIR/cfg")' -DestinationPath '$(wslpath -w "$SCRIPT_DIR/bin/cfg.zip")' -Force"
+# --- Create versioned zips ---
+zip_with_version "$DEPLOY_DIR" "MatchZy" "$VERSION"
+zip_with_version "$CFG_DIR/cfg" "cfg" "$VERSION"
 
 echo ""
-echo "Done!"
-echo "  bin/MatchZy.zip  - plugin files"
-echo "  bin/cfg.zip      - config files"
-echo ""
 echo "To deploy on DatHost:"
-echo "  1. Upload MatchZy.zip -> extract to: csgo/addons/counterstrikesharp/plugins/MatchZy/"
-echo "  2. Upload cfg.zip     -> extract to: csgo/ (contains cfg/MatchZy/)"
+echo "  1. Upload MatchZy-$VERSION.zip -> extract to: csgo/addons/counterstrikesharp/plugins/MatchZy/"
+echo "  2. Upload cfg-$VERSION.zip     -> extract to: csgo/ (contains cfg/MatchZy/)"
 echo "  3. Restart the server"
