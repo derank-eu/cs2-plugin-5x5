@@ -52,6 +52,15 @@ namespace MatchZy
         [JsonPropertyName("wingman")]
         public bool Wingman { get; set; } = false;
 
+        // Derank fork: when true, LoadMatchFromJSON skips the post-load `changelevel`
+        // even if IsMapReloadRequiredForGameMode/currentMap-mismatch would normally trigger it.
+        // Default false → upstream MatchZy behavior, no change for any non-opt-in match.
+        // Used by 2v2 wingman tournaments where the bot has already booted the server on
+        // the target map in mg_wingman; the runtime changelevel resets gametype to
+        // competitive 5v5 and breaks the match.
+        [JsonPropertyName("skip_changelevel")]
+        public bool SkipChangelevel { get; set; } = false;
+
         [JsonPropertyName("match_side_type")]
         public string MatchSideType { get; set; } = "standard";
 

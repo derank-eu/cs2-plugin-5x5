@@ -342,10 +342,20 @@ namespace MatchZy
                 string currentMapName = Server.MapName;
                 string mapName = matchConfig.Maplist[0].ToString();
 
-                if (IsMapReloadRequiredForGameMode(matchConfig.Wingman) || mapReloadRequired || currentMapName != mapName) 
+                bool needsReload = IsMapReloadRequiredForGameMode(matchConfig.Wingman) || mapReloadRequired || currentMapName != mapName;
+                if (needsReload && !matchConfig.SkipChangelevel)
                 {
                     SetCorrectGameMode();
                     ChangeMap(mapName, 0);
+                }
+                else if (needsReload && matchConfig.SkipChangelevel)
+                {
+                    // Derank fork: bot opted out of the post-load changelevel for this match
+                    // (wingman tournament path — server already booted on target map in mg_wingman,
+                    // and a runtime `changelevel` would reset gametype to per-map default and
+                    // break wingman). Set cvars but do not reload the map.
+                    Log($"[LoadMatchFromJSON] skip_changelevel=true — wingman={matchConfig.Wingman}, currentMap={currentMapName}, targetMap={mapName}; setting cvars but not reloading");
+                    SetCorrectGameMode();
                 }
             }
             else
@@ -486,6 +496,10 @@ namespace MatchZy
             if (jsonDataObject["wingman"] != null)
             {
                 matchConfig.Wingman = bool.Parse(jsonDataObject["wingman"]!.ToString());
+            }
+            if (jsonDataObject["skip_changelevel"] != null)
+            {
+                matchConfig.SkipChangelevel = bool.Parse(jsonDataObject["skip_changelevel"]!.ToString());
             }
             if (jsonDataObject["veto_mode"] != null)
             {
