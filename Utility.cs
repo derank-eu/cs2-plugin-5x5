@@ -1887,6 +1887,24 @@ namespace MatchZy
 
         public static string? GetConvarValueFromCFGFile(string filePath, string convarName)
         {
+            // Derank patch (v0.0.10): tolerate missing cfg files. Upstream MatchZy
+            // assumed live.cfg / live_wingman.cfg always exist on the server, but
+            // some DatHost templates (notably wingman_tournament) don't ship the
+            // wingman variant. The unhandled FileNotFoundException cascades into
+            // a NullReference inside InsertMatchData and the match never
+            // transitions to LIVE — players spawn but no rounds count, scoreboard
+            // never appears, players eventually disconnect.
+            //
+            // Returning null here lets the caller fall back to the default cvar
+            // value (1 for both mp_match_can_clinch and mp_overtime_enable per
+            // HandlePlayoutConfig:646-647), which matches the cfg's intent
+            // anyway. The match starts cleanly without the file.
+            if (!File.Exists(filePath))
+            {
+                Log($"[GetConvarValueFromCFGFile] CFG file not found, defaulting: {filePath}");
+                return null;
+            }
+
             var fileContent = File.ReadAllText(filePath);
 
             string pattern = @$"^{convarName}\s+(.+)$";
