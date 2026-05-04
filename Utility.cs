@@ -327,6 +327,21 @@ namespace MatchZy
             PrintToAllChat(Localizer["matchzy.knife.sidedecisionpending", knifeWinnerName]);
             // Server.PrintToChatAll($"{chatPrefix} {ChatColors.Green}{knifeWinnerName}{ChatColors.Default} Won the knife. Waiting for them to type {ChatColors.Green}.stay{ChatColors.Default} or {ChatColors.Green}.switch{ChatColors.Default}");
             sideSelectionMessageTimer ??= AddTimer(chatTimerDelay, SendSideSelectionMessage, TimerFlags.REPEAT);
+
+            // Derank patch (v0.0.11): auto-default to .stay after 30s if the
+            // knife winner never picks. Upstream MatchZy hangs forever waiting
+            // for chat input, which blocks tournament matches when players
+            // don't notice the chat prompt (very common — they're respawning,
+            // adjusting buys, looking at scoreboard). Defaulting to stay is
+            // safe: if the team forgot to type, they almost certainly meant
+            // "keep our winning side" anyway.
+            AddTimer(30.0f, () => {
+                if (isSideSelectionPhase) {
+                    Log("[Derank patch] Side selection timeout (30s) — defaulting to stay");
+                    PrintToAllChat($"{chatPrefix} Tempo esgotado — {ChatColors.Green}{knifeWinnerName}{ChatColors.Default} fica no mesmo lado.");
+                    StartLive();
+                }
+            });
         }
 
         private void SetLiveFlags()
@@ -1901,7 +1916,9 @@ namespace MatchZy
             // anyway. The match starts cleanly without the file.
             if (!File.Exists(filePath))
             {
-                Log($"[GetConvarValueFromCFGFile] CFG file not found, defaulting: {filePath}");
+                // Static method — can't call instance Log(). The fallback default
+                // happens silently in the caller (HandlePlayoutConfig uses ?? "1"),
+                // which is fine for an "expected when cfg is missing" path.
                 return null;
             }
 
