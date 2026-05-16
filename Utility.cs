@@ -1652,6 +1652,19 @@ namespace MatchZy
 
         }
 
+        public bool IsFreezeTime()
+        {
+            try
+            {
+                return GetGameRules().FreezePeriod;
+            }
+            catch (Exception e)
+            {
+                Log($"[IsFreezeTime FATAL] An error occurred: {e.Message}");
+                return false;
+            }
+        }
+
         public bool IsTacticalTimeoutActive()
         {
             var gameRules = Utilities.FindAllEntitiesByDesignerName<CCSGameRulesProxy>("cs_gamerules").First().GameRules!;

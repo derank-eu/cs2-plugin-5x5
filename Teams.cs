@@ -83,10 +83,19 @@ namespace MatchZy
                 command.ReplyToCommand("Cannot add players during halftime. Please wait until the next round starts.");
                 return;
             }
+            // Mid-round adds put the joiner on a side decided by stale teamSides
+            // (the side flips at round-end). Require freezetime so the side
+            // mapping the bot saw matches what the player will spawn into.
+            // Bot pipeline must call pause + wait-for-freezetime before addplayer.
+            if (isMatchLive && !IsFreezeTime())
+            {
+                command.ReplyToCommand("Cannot add players mid-round. Wait for freezetime (start of next round).");
+                return;
+            }
             if (command.ArgCount < 3)
             {
                 command.ReplyToCommand("Usage: matchzy_addplayer <steam64> <team> \"<name>\"");
-                return; 
+                return;
             }
 
             string playerSteamId = command.ArgByIndex(1);
@@ -128,6 +137,11 @@ namespace MatchZy
             if (IsHalfTimePhase())
             {
                 command.ReplyToCommand("Cannot remove players during halftime. Please wait until the next round starts.");
+                return;
+            }
+            if (isMatchLive && !IsFreezeTime())
+            {
+                command.ReplyToCommand("Cannot remove players mid-round. Wait for freezetime (start of next round).");
                 return;
             }
 
