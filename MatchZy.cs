@@ -14,7 +14,7 @@ namespace MatchZy
 
         public override string ModuleName => "MatchZy";
 
-        public const string DerankVersion = "0.0.14";
+        public const string DerankVersion = "0.0.15";
         public override string ModuleVersion => $"0.8.15 (Derank v{DerankVersion})";
 
         public override string ModuleAuthor => "WD- (https://github.com/shobhit-pathak/)";
