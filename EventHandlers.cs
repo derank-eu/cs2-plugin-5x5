@@ -59,9 +59,13 @@ public partial class MatchZy
                     string teamName = team == CsTeam.CounterTerrorist ? matchzyTeam1.teamName : matchzyTeam2.teamName;
                     PrintToAllChat($" {ChatColors.Green}✓ {ChatColors.Default}{player.PlayerName} {ChatColors.Grey}conectou ({ChatColors.Default}{teamName}{ChatColors.Grey})");
 
-                    // Count connected vs expected + build missing list
+                    // Count connected vs expected + build missing list.
+                    // `total` comes from the actual team rosters in the matchzy config
+                    // (NOT matchConfig.PlayersPerTeam) so wingman 2v2 reports 4 and not
+                    // the 5v5 default of 10 even if players_per_team is missing from
+                    // the loadmatch JSON.
                     int connected = 0;
-                    int total = matchConfig.PlayersPerTeam * 2;
+                    int total = 0;
                     List<string> missingNames = new();
 
                     foreach (var tp in new[] { matchzyTeam1.teamPlayers, matchzyTeam2.teamPlayers })
@@ -69,6 +73,7 @@ public partial class MatchZy
                         if (tp is not Newtonsoft.Json.Linq.JObject jObj) continue;
                         foreach (var prop in jObj.Properties())
                         {
+                            total++;
                             string sid = prop.Name;
                             string pName = prop.Value?.ToString() ?? sid;
                             bool found = false;

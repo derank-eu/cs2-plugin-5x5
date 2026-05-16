@@ -146,9 +146,13 @@ namespace MatchZy
             // Suppress ready messages when match was loaded via loadmatch (bot-managed)
             if (isMatchSetup)
             {
-                // Show "waiting for players" message with connected/missing player count
+                // Show "waiting for players" message with connected/missing player count.
+                // `totalExpected` comes from the actual team rosters in the matchzy config
+                // (NOT matchConfig.PlayersPerTeam) so wingman 2v2 reports 4 and not the
+                // 5v5 default of 10 even if players_per_team is missing from the
+                // loadmatch JSON.
                 int connectedCount = 0;
-                int totalExpected = matchConfig.PlayersPerTeam * 2;
+                int totalExpected = 0;
                 List<string> missingPlayers = new();
 
                 foreach (var tp in new[] { matchzyTeam1.teamPlayers, matchzyTeam2.teamPlayers })
@@ -156,6 +160,7 @@ namespace MatchZy
                     if (tp is not Newtonsoft.Json.Linq.JObject jObj) continue;
                     foreach (var prop in jObj.Properties())
                     {
+                        totalExpected++;
                         string steamId = prop.Name;
                         string playerName = prop.Value?.ToString() ?? steamId;
                         bool found = false;
