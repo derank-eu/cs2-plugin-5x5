@@ -344,11 +344,20 @@ namespace MatchZy
         {
             try
             {
-                await connection.ExecuteAsync(@"
+                // Flip to finished from any non-terminal status (was 'live' only —
+                // if the match sat in another status the flip silently no-op'd and
+                // the bot never learned the game ended). The status transition fires
+                // the PG match_update_notify trigger -> pg_notify('match_finished'),
+                // which wakes the bot's LISTEN handler. rowsAffected lets us see in
+                // the log whether the flip actually happened.
+                int rows = await connection.ExecuteAsync(@"
                     UPDATE matches SET status = 'finished', finished_at = NOW()
-                    WHERE id = @matchId AND status = 'live'",
+                    WHERE id = @matchId AND status NOT IN ('finished', 'cancelled')",
                     new { matchId });
-                Log($"[SetDerankMatchFinished] Match {matchId} set to finished");
+                if (rows > 0)
+                    Log($"[SetDerankMatchFinished] Match {matchId} set to finished");
+                else
+                    Log($"[SetDerankMatchFinished] Match {matchId} not updated (already finished/cancelled or missing)");
             }
             catch (Exception ex)
             {
