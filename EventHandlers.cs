@@ -119,6 +119,17 @@ public partial class MatchZy
                     AutoStart();
                 }
             }
+
+            // Record live presence for the web scoreboard (green dot). Real humans
+            // only; liveMatchId <= 0 (no Derank match) is filtered inside the DB call.
+            // Fire-and-forget — never block the connect hook on a DB round-trip.
+            if (!player.IsBot && !player.IsHLTV)
+            {
+                ulong presenceSteamId = player.SteamID;
+                _ = database.SetDerankPlayerConnected(liveMatchId, presenceSteamId)
+                    .ContinueWith(t => Log($"[Presence] connect write failed: {t.Exception?.GetBaseException().Message}"), TaskContinuationOptions.OnlyOnFaulted);
+            }
+
             return HookResult.Continue;
 
         }
@@ -168,6 +179,15 @@ public partial class MatchZy
             noFlashList.Remove(userId);
             lastGrenadesData.Remove(userId);
             nadeSpecificLastGrenadeData.Remove(userId);
+
+            // Stamp the web scoreboard presence row as disconnected (red dot).
+            // Real humans only; no-op for non-Derank matches (liveMatchId <= 0).
+            if (!player.IsBot && !player.IsHLTV)
+            {
+                ulong presenceSteamId = player.SteamID;
+                _ = database.SetDerankPlayerDisconnected(liveMatchId, presenceSteamId)
+                    .ContinueWith(t => Log($"[Presence] disconnect write failed: {t.Exception?.GetBaseException().Message}"), TaskContinuationOptions.OnlyOnFaulted);
+            }
 
             return HookResult.Continue;
         }

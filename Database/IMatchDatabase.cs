@@ -13,5 +13,10 @@ namespace MatchZy
         Task UpdateDerankScoresAsync(long matchId, int t1score, int t2score);
         Task UpdateDerankPlayerStatsAsync(long matchId, int mapNumber, Dictionary<ulong, Dictionary<string, object>> playerStatsDictionary);
         Task SetDerankMatchFinished(long matchId);
+        // Live player presence — drives the web scoreboard's green/red dots via
+        // pg_notify('match_presence'). Connect upserts a row; disconnect stamps
+        // disconnected_at. No-op on non-Postgres backends.
+        Task SetDerankPlayerConnected(long matchId, ulong steamId);
+        Task SetDerankPlayerDisconnected(long matchId, ulong steamId);
     }
 }

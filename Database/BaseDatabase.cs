@@ -108,6 +108,8 @@ namespace MatchZy
         public virtual Task UpdateDerankScoresAsync(long matchId, int t1score, int t2score) => Task.CompletedTask;
         public virtual Task UpdateDerankPlayerStatsAsync(long matchId, int mapNumber, Dictionary<ulong, Dictionary<string, object>> playerStatsDictionary) => Task.CompletedTask;
         public virtual Task SetDerankMatchFinished(long matchId) => Task.CompletedTask;
+        public virtual Task SetDerankPlayerConnected(long matchId, ulong steamId) => Task.CompletedTask;
+        public virtual Task SetDerankPlayerDisconnected(long matchId, ulong steamId) => Task.CompletedTask;
 
         protected static void Log(string message) => Console.WriteLine("[MatchZy] " + message);
 

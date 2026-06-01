@@ -7,6 +7,10 @@ namespace MatchZy
     public class PostgresDatabase : BaseDatabase
     {
         private readonly DatabaseConfig config;
+        // Cached so short-lived, concurrent-safe writes (player presence) can open
+        // their OWN pooled connection instead of sharing the single long-lived
+        // `connection` field — NpgsqlConnection does not support concurrent commands.
+        private string connectionString = "";
 
         public PostgresDatabase(DatabaseConfig config)
         {
@@ -17,7 +21,7 @@ namespace MatchZy
         {
             try
             {
-                string connectionString = $"Host={config.PostgresHost};Port={config.PostgresPort ?? 5432};Database={config.PostgresDatabase};Username={config.PostgresUsername};Password={config.PostgresPassword};";
+                connectionString = $"Host={config.PostgresHost};Port={config.PostgresPort ?? 5432};Database={config.PostgresDatabase};Username={config.PostgresUsername};Password={config.PostgresPassword};";
                 connection = new NpgsqlConnection(connectionString);
                 connection.Open();
                 Log("[InitializeDatabase] PostgreSQL Database connection successful");
@@ -362,6 +366,51 @@ namespace MatchZy
             catch (Exception ex)
             {
                 Log($"[SetDerankMatchFinished] Error: {ex.Message}");
+            }
+        }
+
+        public override async Task SetDerankPlayerConnected(long matchId, ulong steamId)
+        {
+            // Only meaningful for real Derank matches (matchId > 0). Upsert so a
+            // reconnect clears any prior disconnected_at. The AFTER trigger fires
+            // pg_notify('match_presence', {state:'connected'}) → bot updates the dot.
+            //
+            // Uses its OWN short-lived pooled connection — connect/disconnect events
+            // arrive in bursts (10 players at match start) and the shared `connection`
+            // field is a single NpgsqlConnection that throws on concurrent commands.
+            if (matchId <= 0) return;
+            try
+            {
+                using var conn = new NpgsqlConnection(connectionString);
+                await conn.OpenAsync();
+                await conn.ExecuteAsync(@"
+                    INSERT INTO match_player_presence (match_id, steam_id, connected_at, disconnected_at)
+                    VALUES (@matchId, @steamId, NOW(), NULL)
+                    ON CONFLICT (match_id, steam_id)
+                    DO UPDATE SET connected_at = NOW(), disconnected_at = NULL",
+                    new { matchId, steamId = steamId.ToString() });
+            }
+            catch (Exception ex)
+            {
+                Log($"[SetDerankPlayerConnected] Error: {ex.Message}");
+            }
+        }
+
+        public override async Task SetDerankPlayerDisconnected(long matchId, ulong steamId)
+        {
+            if (matchId <= 0) return;
+            try
+            {
+                using var conn = new NpgsqlConnection(connectionString);
+                await conn.OpenAsync();
+                await conn.ExecuteAsync(@"
+                    UPDATE match_player_presence SET disconnected_at = NOW()
+                    WHERE match_id = @matchId AND steam_id = @steamId AND disconnected_at IS NULL",
+                    new { matchId, steamId = steamId.ToString() });
+            }
+            catch (Exception ex)
+            {
+                Log($"[SetDerankPlayerDisconnected] Error: {ex.Message}");
             }
         }
     }
