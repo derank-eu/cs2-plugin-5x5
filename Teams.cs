@@ -1,6 +1,7 @@
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Core.Attributes.Registration;
+using CounterStrikeSharp.API.Modules.Utils;
 using Newtonsoft.Json.Linq;
 using System.Text.Json.Serialization;
 using CounterStrikeSharp.API;
@@ -122,6 +123,70 @@ namespace MatchZy
                 return;
             }
             command.ReplyToCommand($"Player {playerName} added to {playerTeam} successfully!");
+        }
+
+        // Roster-only add for live substitutions. Unlike matchzy_addplayer this
+        // does NOT require freezetime: it only inserts the steamid into the team
+        // roster (teamPlayers) so the player passes the GetPlayerTeam() == None
+        // kick gate in EventPlayerConnectFullHandler and can connect at ANY time.
+        // It does NOT switch the player's side — CS2 spawns roster members onto
+        // their team at the next round start, so a mid-round connect just waits
+        // (dead/spectating) until the next round, which is the desired behavior.
+        // The bot calls this the instant a substitute accepts, so the sub never
+        // races the freezetime-gated addplayer and gets kicked.
+        [ConsoleCommand("matchzy_rosteradd", "Adds player to a team roster without requiring freezetime (live-sub whitelist)")]
+        public void OnRosterAddCommand(CCSPlayerController? player, CommandInfo? command)
+        {
+            if (player != null || command == null) return;
+            if (!isMatchSetup) {
+                command.ReplyToCommand("No match is setup!");
+                return;
+            }
+            if (command.ArgCount < 3)
+            {
+                command.ReplyToCommand("Usage: matchzy_rosteradd <steam64> <team> \"<name>\"");
+                return;
+            }
+
+            string playerSteamId = command.ArgByIndex(1);
+            string playerTeam = command.ArgByIndex(2);
+            string playerName = command.ArgByIndex(3);
+            bool success;
+            if (playerTeam == "team1")
+            {
+                success = AddPlayerToTeam(playerSteamId, playerName, matchzyTeam1.teamPlayers);
+            } else if (playerTeam == "team2")
+            {
+                success = AddPlayerToTeam(playerSteamId, playerName, matchzyTeam2.teamPlayers);
+            } else if (playerTeam == "spec")
+            {
+                success = AddPlayerToTeam(playerSteamId, playerName, matchConfig.Spectators);
+            } else
+            {
+                command.ReplyToCommand("Unknown team: must be one of team1, team2, spec");
+                return;
+            }
+            if (!success)
+            {
+                // Already on a team is the idempotent-retry case — report it
+                // distinctly so the bot can treat it as success.
+                command.ReplyToCommand($"Failed to add player {playerName} to {playerTeam}. They may already be on a team or you provided an invalid Steam ID.");
+                return;
+            }
+
+            // If the substitute is ALREADY connected (they joined before this
+            // command landed and were sitting on the kick edge), assign their
+            // team now so they aren't stuck unassigned. SwitchPlayerTeam is a
+            // no-op when they're already on the right side; mid-round CS2 holds
+            // them until the next spawn, which is fine.
+            CCSPlayerController? connected = Utilities.GetPlayerFromSteamId(ulong.TryParse(playerSteamId, out ulong sid) ? sid : 0);
+            if (IsPlayerValid(connected))
+            {
+                CsTeam assignedTeam = GetPlayerTeam(connected!);
+                if (assignedTeam != CsTeam.None) SwitchPlayerTeam(connected!, assignedTeam);
+            }
+
+            command.ReplyToCommand($"Player {playerName} roster-added to {playerTeam} successfully!");
         }
 
         [ConsoleCommand("matchzy_removeplayer", "Removes the player from all the teams")]
