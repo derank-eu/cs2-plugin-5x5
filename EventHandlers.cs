@@ -50,13 +50,30 @@ public partial class MatchZy
                 }
             }
 
+            if (!player.IsBot && !player.IsHLTV && (isMatchSetup || isVeto))
+            {
+                // The bot sets sv_disable_teamselect_menu 1, so nothing puts a new
+                // player on a team until mp_force_pick_time (~15s) auto-assigns them.
+                // Until then they float in free-cam and think they are not in the
+                // match. Put them on their side now; the second try covers a
+                // controller that was not ready yet. The engine auto-assign plus the
+                // EventPlayerTeam handler stays as the fallback.
+                AddTimer(0.5f, () => JoinAssignedTeam(player));
+                AddTimer(2.0f, () => JoinAssignedTeam(player));
+            }
+
             if (!player.IsBot && !player.IsHLTV)
             {
                 if (isMatchSetup)
                 {
                     // Match configured — show team assignment + player count + who's missing
-                    CsTeam team = GetPlayerTeam(player);
-                    string teamName = team == CsTeam.CounterTerrorist ? matchzyTeam1.teamName : matchzyTeam2.teamName;
+                    // By roster, not by side: team1 is not always CT.
+                    string teamName = TeamPlacement.FindSlot(player.SteamID.ToString(), matchzyTeam1.teamPlayers, matchzyTeam2.teamPlayers, matchConfig.Spectators) switch
+                    {
+                        RosterSlot.Team1 => matchzyTeam1.teamName,
+                        RosterSlot.Team2 => matchzyTeam2.teamName,
+                        _ => "Espectador",
+                    };
                     PrintToAllChat($" {ChatColors.Green}✓ {ChatColors.Default}{player.PlayerName} {ChatColors.Grey}conectou ({ChatColors.Default}{teamName}{ChatColors.Grey})");
 
                     // Count connected vs expected + build missing list.

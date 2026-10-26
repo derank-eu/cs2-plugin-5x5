@@ -2042,6 +2042,28 @@ namespace MatchZy
             return false;
         }
 
+        // Puts a roster player on their side straight away. A player with no team
+        // yet (just connected, menu disabled) goes through ChangeTeam, the jointeam
+        // path, because SwitchTeam leaves an unassigned player without a proper
+        // spawn. A player already on the wrong side goes through SwitchPlayerTeam,
+        // which keeps them alive and respawns them in warmup.
+        public void JoinAssignedTeam(CCSPlayerController player)
+        {
+            if (!player.IsValid || player.IsBot || player.IsHLTV) return;
+            if (player.Connected != PlayerConnectedState.PlayerConnected) return;
+
+            // Coaches have their own team handling in Coach.cs.
+            bool isCoach = matchzyTeam1.coach.Contains(player) || matchzyTeam2.coach.Contains(player);
+            // Read the side now, not at connect: a halftime swap may have run since.
+            CsTeam team = GetPlayerTeam(player);
+            PlacementAction action = TeamPlacement.Decide(player.Team, team, isMatchSetup || isVeto, isCoach);
+            if (action == PlacementAction.None) return;
+
+            Log($"[JoinAssignedTeam] {player.PlayerName}: {player.Team} -> {team} ({action})");
+            if (action == PlacementAction.ChangeTeam) player.ChangeTeam(team);
+            else SwitchPlayerTeam(player, team);
+        }
+
         public void SwitchPlayerTeam(CCSPlayerController player, CsTeam team)
         {
             if (player.Team == team) return;

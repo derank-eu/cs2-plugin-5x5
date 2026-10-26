@@ -58,7 +58,13 @@ CFG_DIR="$SCRIPT_DIR/bin/cfg"
 
 # Build & publish (copies all dependency DLLs)
 echo "Building..."
-cd "$SCRIPT_DIR" && dotnet publish -c Release -o "$PUBLISH_DIR"
+if command -v dotnet &>/dev/null; then
+  cd "$SCRIPT_DIR" && dotnet publish -c Release -o "$PUBLISH_DIR"
+else
+  # No local SDK: build in the .NET 8 SDK image (runs as root, so hand the output back).
+  docker run --rm -e DOTNET_NOLOGO=1 -v "$SCRIPT_DIR":/src -w /src mcr.microsoft.com/dotnet/sdk:8.0 \
+    bash -c "trap 'chown -R $(id -u):$(id -g) /src/bin /src/obj' EXIT; dotnet publish -c Release -o /src/bin/publish"
+fi
 
 # --- MatchZy.zip (plugin folder) ---
 rm -rf "$DEPLOY_DIR"

@@ -321,6 +321,7 @@ namespace MatchZy
 
             LoadClientNames();
 
+            bool mapReloadPending = false;
             if (matchConfig.SkipVeto)
             {
                 // Copy the first k maps from the maplist to the final match maps.
@@ -347,6 +348,7 @@ namespace MatchZy
                 {
                     SetCorrectGameMode();
                     ChangeMap(mapName, 0);
+                    mapReloadPending = true;
                 }
                 else if (needsReload && matchConfig.SkipChangelevel)
                 {
@@ -376,6 +378,13 @@ namespace MatchZy
 
             SetTeamNames();
             UpdatePlayersMap();
+            // Players who joined before the match loaded (e.g. after a server restart)
+            // may sit on no side or a random one. A changelevel re-fires connect for
+            // everyone, so only place them here when the map stays.
+            if (!mapReloadPending)
+            {
+                foreach (var connected in playerData.Values) JoinAssignedTeam(connected);
+            }
             UpdateHostname();
 
             // Announce match setup to players in server
@@ -557,36 +566,13 @@ namespace MatchZy
         private CsTeam GetPlayerTeam(CCSPlayerController player)
         {
             CsTeam playerTeam = CsTeam.None;
-            var steamId = player.SteamID;
             try
             {
-                if (matchzyTeam1.teamPlayers != null && matchzyTeam1.teamPlayers[steamId.ToString()] != null)
-                {
-                    if (teamSides[matchzyTeam1] == "CT")
-                    {
-                        playerTeam = CsTeam.CounterTerrorist;
-                    }
-                    else if (teamSides[matchzyTeam1] == "TERRORIST")
-                    {
-                        playerTeam = CsTeam.Terrorist;
-                    }
-
-                }
-                else if (matchzyTeam2.teamPlayers != null && matchzyTeam2.teamPlayers[steamId.ToString()] != null)
-                {
-                    if (teamSides[matchzyTeam2] == "CT")
-                    {
-                        playerTeam = CsTeam.CounterTerrorist;
-                    }
-                    else if (teamSides[matchzyTeam2] == "TERRORIST")
-                    {
-                        playerTeam = CsTeam.Terrorist;
-                    }
-                }
-                else if (matchConfig.Spectators != null && matchConfig.Spectators[steamId.ToString()] != null)
-                {
-                    playerTeam = CsTeam.Spectator;
-                }
+                playerTeam = TeamPlacement.RosterTeam(
+                    player.SteamID.ToString(),
+                    matchzyTeam1.teamPlayers, teamSides.GetValueOrDefault(matchzyTeam1),
+                    matchzyTeam2.teamPlayers, teamSides.GetValueOrDefault(matchzyTeam2),
+                    matchConfig.Spectators);
             }
             catch (Exception ex)
             {

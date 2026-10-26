@@ -14,7 +14,7 @@ namespace MatchZy
 
         public override string ModuleName => "MatchZy";
 
-        public const string DerankVersion = "0.0.19";
+        public const string DerankVersion = "0.0.21";
         public override string ModuleVersion => $"0.8.15 (Derank v{DerankVersion})";
 
         public override string ModuleAuthor => "WD- (https://github.com/shobhit-pathak/)";
@@ -259,8 +259,10 @@ namespace MatchZy
             {
                 if ((isMatchSetup || isVeto) && player != null && player.IsValid) {
                     if (int.TryParse(info.ArgByIndex(1), out int joiningTeam)) {
-                        int playerTeam = (int)GetPlayerTeam(player);
-                        if (joiningTeam != playerTeam) {
+                        if (TeamPlacement.BlockJoinTeam(true, joiningTeam, GetPlayerTeam(player))) {
+                            // Any pick (or auto-select) puts a roster player on their own
+                            // side, instead of silently doing nothing.
+                            Server.NextFrame(() => JoinAssignedTeam(player));
                             return HookResult.Stop;
                         }
                     }
